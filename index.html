@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>倒數計時器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        header {
+            max-width: 1200px;
+            margin: 0 auto 30px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #e0e0e0;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .header-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn-add {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn-add:hover {
+            background: #7b8ff0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-add:active {
+            transform: translateY(0);
+        }
+
+        .stats {
+            color: #b0b0b0;
+            font-size: 1.1em;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 15px;
+        }
+
+        #timer-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+            padding: 0;
+        }
+
+        .timer-card {
+            background: #2d2d44;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .timer-card.running {
+            box-shadow: 0 8px 30px rgba(76, 175, 80, 0.3);
+            border: 2px solid #66bb6a;
+        }
+
+        .timer-card.paused {
+            box-shadow: 0 8px 30px rgba(255, 152, 0, 0.3);
+            border: 2px solid #ffb74d;
+        }
+
+        .timer-card.finished {
+            box-shadow: 0 8px 30px rgba(244, 67, 54, 0.3);
+            border: 2px solid #ef5350;
+        }
+
+        .timer-card.idle {
+            border: 2px solid transparent;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .timer-name {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #e0e0e0;
+            flex: 1;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+
+        .timer-name:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .timer-name:focus {
+            outline: 2px solid #667eea;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-delete {
+            background: #ef5350;
+            color: white;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-delete:hover {
+            background: #e53935;
+            transform: scale(1.1);
+        }
+
+        .time-inputs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            background: #1f1f2e;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .time-input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .time-input-group label {
+            font-size: 0.85em;
+            color: #9e9e9e;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .time-input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #404050;
+            border-radius: 5px;
+            font-size: 1.1em;
+            text-align: center;
+            font-weight: 600;
+            background: #2d2d44;
+            color: #e0e0e0;
+            transition: border-color 0.2s;
+        }
+
+        .time-input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #353545;
+        }
+
+        .display-time {
+            font-size: 3em;
+            font-weight: 700;
+            text-align: center;
+            color: #66bb6a;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            background: #1f1f2e;
+            border-radius: 10px;
+            letter-spacing: 5px;
+        }
+
+        .finished-badge {
+            display: none;
+            text-align: center;
+            color: #ef5350;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .timer-card.finished .finished-badge {
+            display: block;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-control {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-start {
+            background: #66bb6a;
+            color: white;
+        }
+
+        .btn-start:hover {
+            background: #81c784;
+        }
+
+        .btn-pause {
+            background: #ffb74d;
+            color: white;
+        }
+
+        .btn-pause:hover {
+            background: #fcc86f;
+        }
+
+        .btn-reset {
+            background: #64b5f6;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background: #82c4f9;
+        }
+
+        .btn-control:active {
+            transform: scale(0.98);
+        }
+
+        .btn-control:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-stop-sound {
+            background: #9c27b0 !important;
+        }
+
+        .btn-stop-sound:hover {
+            background: #b439d6 !important;
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            #timer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .display-time {
+                font-size: 2.2em;
+                letter-spacing: 3px;
+            }
+
+            .time-inputs {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .card-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>⏱️ 倒數計時器</h1>
+        <div class="header-controls">
+            <button class="btn-add" id="btn-add-timer">+ 新增計時器</button>
+        </div>
+        <div class="stats">
+            <div>運行中: <span id="running-count">0</span></div>
+            <div>已完成: <span id="finished-count">0</span></div>
+        </div>
+    </header>
+
+    <main id="timer-grid"></main>
+
+    <script>
+        class TimerCard {
+            constructor(id) {
+                this.id = id;
+                this.state = 'idle';
+                this.hours = 0;
+                this.minutes = 5;
+                this.seconds = 0;
+                this.remainingSeconds = 5 * 60;
+                this.intervalId = null;
+                this.startTime = null;
+                this.initialRemaining = 5 * 60;
+
+                this.createDOM();
+                this.bindEvents();
+            }
+
+            createDOM() {
+                this.element = document.createElement('div');
+                this.element.className = 'timer-card idle';
+                this.element.innerHTML = `
+                    <div class="card-header">
+                        <input type="text" class="timer-name" value="Timer ${this.id}">
+                        <button class="btn-delete">✕</button>
+                    </div>
+
+                    <div class="time-inputs">
+                        <div class="time-input-group">
+                            <label>時</label>
+                            <input type="number" class="input-hours" min="0" max="23" value="00">
+                        </div>
+                        <div class="time-input-group">
+                            <label>分</label>
+                            <input type="number" class="input-minutes" min="0" max="59" value="05">
+                        </div>
+                        <div class="time-input-group">
+                            <label>秒</label>
+                            <input type="number" class="input-seconds" min="0" max="59" value="00">
+                        </div>
+                    </div>
+
+                    <div class="display-time">00:05:00</div>
+                    <div class="finished-badge">時間到！</div>
+
+                    <div class="card-actions">
+                        <button class="btn-control btn-start">開始</button>
+                        <button class="btn-control btn-reset">重置</button>
+                        <button class="btn-control btn-stop-sound" style="display: none; background: #9c27b0;">關閉提示音</button>
+                    </div>
+                `;
+
+                document.getElementById('timer-grid').appendChild(this.element);
+
+                this.displayEl = this.element.querySelector('.display-time');
+                this.inputHours = this.element.querySelector('.input-hours');
+                this.inputMinutes = this.element.querySelector('.input-minutes');
+                this.inputSeconds = this.element.querySelector('.input-seconds');
+                this.btnStart = this.element.querySelector('.btn-start');
+                this.btnReset = this.element.querySelector('.btn-reset');
+                this.btnDelete = this.element.querySelector('.btn-delete');
+                this.btnStopSound = this.element.querySelector('.btn-stop-sound');
+            }
+
+            bindEvents() {
+                this.btnStart.addEventListener('click', () => this.toggleStart());
+                this.btnReset.addEventListener('click', () => this.reset());
+                this.btnDelete.addEventListener('click', () => this.destroy());
+                this.btnStopSound.addEventListener('click', () => stopBeep());
+
+                [this.inputHours, this.inputMinutes, this.inputSeconds].forEach(input => {
+                    input.addEventListener('change', () => this.updateFromInputs());
+                });
+            }
+
+            toggleStart() {
+                if (this.state === 'idle' || this.state === 'paused') {
+                    this.start();
+                } else if (this.state === 'running') {
+                    this.pause();
+                }
+            }
+
+            start() {
+                if (this.state === 'finished') return;
+
+                this.state = 'running';
+                this.startTime = Date.now() - (this.initialRemaining - this.remainingSeconds) * 1000;
+                this.updateDisplay();
+                this.updateButtons();
+                this.updateCardState();
+                this.hideStopSoundBtn();
+
+                this.intervalId = setInterval(() => this.tick(), 100);
+                updateStats();
+            }
+
+            pause() {
+                this.state = 'paused';
+                if (this.intervalId) clearInterval(this.intervalId);
+                this.updateButtons();
+                this.updateCardState();
+                updateStats();
+            }
+
+            reset() {
+                this.state = 'idle';
+                if (this.intervalId) clearInterval(this.intervalId);
+                this.updateFromInputs();
+                this.updateButtons();
+                this.updateCardState();
+                this.hideStopSoundBtn();
+                stopBeep();
+                updateStats();
+            }
+
+            updateFromInputs() {
+                this.hours = Math.max(0, Math.min(23, parseInt(this.inputHours.value) || 0));
+                this.minutes = Math.max(0, Math.min(59, parseInt(this.inputMinutes.value) || 0));
+                this.seconds = Math.max(0, Math.min(59, parseInt(this.inputSeconds.value) || 0));
+
+                this.inputHours.value = String(this.hours).padStart(2, '0');
+                this.inputMinutes.value = String(this.minutes).padStart(2, '0');
+                this.inputSeconds.value = String(this.seconds).padStart(2, '0');
+
+                this.remainingSeconds = this.hours * 3600 + this.minutes * 60 + this.seconds;
+                this.initialRemaining = this.remainingSeconds;
+
+                if (this.state === 'idle') {
+                    this.updateDisplay();
+                }
+            }
+
+            tick() {
+                if (this.state !== 'running') return;
+
+                const elapsed = (Date.now() - this.startTime) / 1000;
+                this.remainingSeconds = Math.max(0, this.initialRemaining - elapsed);
+
+                this.updateDisplay();
+
+                if (this.remainingSeconds <= 0) {
+                    this.finish();
+                }
+            }
+
+            updateDisplay() {
+                const total = Math.round(this.remainingSeconds);
+                const h = Math.floor(total / 3600);
+                const m = Math.floor((total % 3600) / 60);
+                const s = total % 60;
+
+                this.displayEl.textContent =
+                    String(h).padStart(2, '0') + ':' +
+                    String(m).padStart(2, '0') + ':' +
+                    String(s).padStart(2, '0');
+            }
+
+            finish() {
+                this.state = 'finished';
+                if (this.intervalId) clearInterval(this.intervalId);
+                this.remainingSeconds = 0;
+                this.updateDisplay();
+                this.updateButtons();
+                this.updateCardState();
+                this.showStopSoundBtn();
+
+                playBeep();
+                updateStats();
+            }
+
+            showStopSoundBtn() {
+                this.btnStopSound.style.display = 'block';
+            }
+
+            hideStopSoundBtn() {
+                this.btnStopSound.style.display = 'none';
+            }
+
+            updateButtons() {
+                const canEdit = this.state === 'idle';
+                this.inputHours.disabled = !canEdit;
+                this.inputMinutes.disabled = !canEdit;
+                this.inputSeconds.disabled = !canEdit;
+
+                if (this.state === 'running') {
+                    this.btnStart.textContent = '暫停';
+                    this.btnStart.className = 'btn-control btn-pause';
+                } else {
+                    this.btnStart.textContent = '開始';
+                    this.btnStart.className = 'btn-control btn-start';
+                }
+
+                this.btnStart.disabled = this.state === 'finished';
+                this.btnReset.disabled = this.state === 'idle' && this.remainingSeconds === this.initialRemaining;
+            }
+
+            updateCardState() {
+                this.element.className = 'timer-card ' + this.state;
+            }
+
+            destroy() {
+                if (this.intervalId) clearInterval(this.intervalId);
+                if (this.state === 'finished') {
+                    stopBeep();
+                }
+                this.element.remove();
+                updateStats();
+            }
+        }
+
+        let currentAudioContext = null;
+        let beepTimeoutId = null;
+
+        function playBeep() {
+            stopBeep();
+
+            const beepPattern = () => {
+                if (!currentAudioContext) {
+                    currentAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                try {
+                    const oscillator = currentAudioContext.createOscillator();
+                    const gainNode = currentAudioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(currentAudioContext.destination);
+
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+
+                    gainNode.gain.setValueAtTime(0.25, currentAudioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, currentAudioContext.currentTime + 0.4);
+
+                    oscillator.start(currentAudioContext.currentTime);
+                    oscillator.stop(currentAudioContext.currentTime + 0.4);
+                } catch (e) {
+                    console.error('Audio error:', e);
+                }
+            };
+
+            let beepCount = 0;
+            const playBeepCycle = () => {
+                if (beepCount >= 10) {
+                    stopBeep();
+                    document.querySelectorAll('.btn-stop-sound').forEach(btn => {
+                        btn.style.display = 'none';
+                    });
+                    return;
+                }
+                beepPattern();
+                beepCount++;
+                beepTimeoutId = setTimeout(playBeepCycle, 1000);
+            };
+
+            playBeepCycle();
+        }
+
+        function stopBeep() {
+            if (beepTimeoutId) {
+                clearTimeout(beepTimeoutId);
+                beepTimeoutId = null;
+            }
+            if (currentAudioContext && currentAudioContext.state !== 'closed') {
+                try {
+                    currentAudioContext.close();
+                } catch (e) {}
+                currentAudioContext = null;
+            }
+        }
+
+        function updateStats() {
+            const cards = document.querySelectorAll('.timer-card');
+            let running = 0;
+            let finished = 0;
+
+            cards.forEach(card => {
+                if (card.classList.contains('running')) running++;
+                if (card.classList.contains('finished')) finished++;
+            });
+
+            document.getElementById('running-count').textContent = running;
+            document.getElementById('finished-count').textContent = finished;
+        }
+
+        function addTimer() {
+            const cards = document.querySelectorAll('.timer-card');
+            const newId = cards.length + 1;
+            new TimerCard(newId);
+        }
+
+        document.getElementById('btn-add-timer').addEventListener('click', addTimer);
+
+        window.addEventListener('load', () => {
+            new TimerCard(1);
+            new TimerCard(2);
+            new TimerCard(3);
+        });
+    </script>
+</body>
+</html>
