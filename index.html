@@ -440,6 +440,7 @@
             }
 
             toggleStart() {
+                unlockAudio();
                 if (this.state === 'idle' || this.state === 'paused') {
                     this.start();
                 } else if (this.state === 'running') {
@@ -578,19 +579,22 @@
         let sharedAudioContext = null;
         let beepTimeoutId = null;
 
-        function initAudioContext() {
+        function unlockAudio() {
             try {
                 if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
                     sharedAudioContext = new (window.AudioContext || window.webkitAudioContext)();
                 }
                 if (sharedAudioContext.state === 'suspended') {
-                    const buffer = sharedAudioContext.createBuffer(1, 1, 22050);
-                    const source = sharedAudioContext.createBufferSource();
-                    source.buffer = buffer;
-                    source.connect(sharedAudioContext.destination);
-                    source.start(0);
                     sharedAudioContext.resume();
                 }
+                // iOS requires an actual audio node to be started within the user gesture handler
+                const osc = sharedAudioContext.createOscillator();
+                const gain = sharedAudioContext.createGain();
+                gain.gain.value = 0.001;
+                osc.connect(gain);
+                gain.connect(sharedAudioContext.destination);
+                osc.start();
+                osc.stop(sharedAudioContext.currentTime + 0.05);
             } catch (e) {}
         }
 
@@ -675,8 +679,11 @@
         }
 
         document.getElementById('btn-add-timer').addEventListener('click', addTimer);
-        document.addEventListener('click', initAudioContext);
-        document.addEventListener('touchstart', initAudioContext);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && sharedAudioContext && sharedAudioContext.state === 'suspended') {
+                sharedAudioContext.resume();
+            }
+        });
 
         window.addEventListener('load', () => {
             new TimerCard(1);
