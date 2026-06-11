@@ -490,7 +490,7 @@
                 <span>時</span>
                 <input type="number" id="pikmin-minutes" min="0" max="59" value="04" inputmode="numeric" pattern="[0-9]*">
                 <span>分</span>
-                <input type="number" id="pikmin-seconds" min="0" max="59" value="30" inputmode="numeric" pattern="[0-9]*">
+                <input type="number" id="pikmin-seconds" min="0" max="59" value="10" inputmode="numeric" pattern="[0-9]*">
                 <span>秒</span>
             </div>
         </div>
@@ -739,7 +739,7 @@
         let sharedAudioContext = null;
         let beepTimeoutId = null;
         let timerCards = [];
-        let pikminOffsetSeconds = 270;
+        let pikminOffsetSeconds = 250;
 
         function unlockAudio() {
             try {
