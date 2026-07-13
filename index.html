@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>倒數計時器</title>
+    <title>Pikmin Timer</title>
     <style>
+        :root {
+            --card-scale: 0.8;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -79,20 +83,23 @@
             max-width: 1200px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(calc(320px * var(--card-scale, 0.8)), 1fr));
+            gap: calc(20px * var(--card-scale, 0.8));
             padding: 0;
         }
 
         .timer-card {
+            position: relative;
             background: #2d2d44;
             border-radius: 15px;
             padding: 25px;
+            overflow: hidden;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
             transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
             gap: 15px;
+            zoom: var(--card-scale, 0.8);
         }
 
         .timer-card.running {
@@ -118,6 +125,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding-right: 52px;
         }
 
         .timer-name {
@@ -143,11 +151,14 @@
         }
 
         .btn-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
             background: #ef5350;
             color: white;
             border: none;
-            width: 44px;
-            height: 44px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             cursor: pointer;
             font-size: 1.2em;
@@ -866,6 +877,7 @@
             timerCards.push(new TimerCard(1));
             timerCards.push(new TimerCard(2));
             timerCards.push(new TimerCard(3));
+            timerCards.push(new TimerCard(4));
         });
     </script>
 </body>
