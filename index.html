@@ -527,7 +527,7 @@
 
     <script>
         class TimerCard {
-            constructor(id) {
+            constructor(id, name) {
                 this.id = id;
                 this.state = 'idle';
                 this.hours = 0;
@@ -541,6 +541,7 @@
                 this.completionTime = null;
 
                 this.createDOM();
+                if (name) this.nameInput.value = name;
                 this.bindEvents();
             }
 
@@ -592,6 +593,7 @@
                 document.getElementById('timer-grid').appendChild(this.element);
 
                 this.displayEl = this.element.querySelector('.display-time');
+                this.nameInput = this.element.querySelector('.timer-name');
                 this.inputHours = this.element.querySelector('.input-hours');
                 this.inputMinutes = this.element.querySelector('.input-minutes');
                 this.inputSeconds = this.element.querySelector('.input-seconds');
@@ -610,6 +612,7 @@
                 this.btnReset.addEventListener('click', () => this.reset());
                 this.btnDelete.addEventListener('click', () => this.destroy());
                 this.btnStopSound.addEventListener('click', () => stopBeep());
+                this.nameInput.addEventListener('change', () => saveState());
 
                 [this.inputHours, this.inputMinutes, this.inputSeconds].forEach(input => {
                     input.addEventListener('change', () => this.updateFromInputs());
@@ -780,6 +783,7 @@
                 const idx = timerCards.indexOf(this);
                 if (idx !== -1) timerCards.splice(idx, 1);
                 updateStats();
+                saveState();
             }
         }
 
@@ -787,6 +791,26 @@
         let beepTimeoutId = null;
         let timerCards = [];
         let pikminOffsetSeconds = 240;
+        const STORAGE_KEY = 'timerCardsState';
+
+        function saveState() {
+            try {
+                const titles = timerCards.map(card => card.nameInput.value);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(titles));
+            } catch (e) {}
+        }
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw === null) return null;
+                const titles = JSON.parse(raw);
+                if (!Array.isArray(titles)) return null;
+                return titles;
+            } catch (e) {
+                return null;
+            }
+        }
 
         function unlockAudio() {
             try {
@@ -894,12 +918,13 @@
             document.getElementById('finished-count').textContent = finished;
         }
 
-        function addTimer() {
+        function addTimer(name) {
             const newId = timerCards.length + 1;
-            timerCards.push(new TimerCard(newId));
+            timerCards.push(new TimerCard(newId, name));
+            saveState();
         }
 
-        document.getElementById('btn-add-timer').addEventListener('click', addTimer);
+        document.getElementById('btn-add-timer').addEventListener('click', () => addTimer());
         ['pikmin-hours', 'pikmin-minutes', 'pikmin-seconds'].forEach(id => {
             document.getElementById(id).addEventListener('change', updatePikminOffset);
         });
@@ -910,10 +935,17 @@
         });
 
         window.addEventListener('load', () => {
-            timerCards.push(new TimerCard(1));
-            timerCards.push(new TimerCard(2));
-            timerCards.push(new TimerCard(3));
-            timerCards.push(new TimerCard(4));
+            const savedTitles = loadState();
+            if (savedTitles !== null) {
+                savedTitles.forEach((title, i) => {
+                    timerCards.push(new TimerCard(i + 1, title));
+                });
+            } else {
+                timerCards.push(new TimerCard(1));
+                timerCards.push(new TimerCard(2));
+                timerCards.push(new TimerCard(3));
+                timerCards.push(new TimerCard(4));
+            }
         });
     </script>
 </body>
