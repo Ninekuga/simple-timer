@@ -505,6 +505,8 @@
         <h1>⏱️ 倒數計時器</h1>
         <div class="header-controls">
             <button class="btn-add" id="btn-add-timer">+ 新增計時器</button>
+            <button class="btn-add" id="btn-sort-timer">時間排序</button>
+            <button class="btn-add" id="btn-sort-name">字序排序</button>
         </div>
         <div class="pikmin-global-settings">
             <span class="pikmin-settings-label">皮克敏附加時間：</span>
@@ -924,7 +926,33 @@
             saveState();
         }
 
+        const STATE_SORT_RANK = { running: 0, paused: 1, finished: 2, idle: 3 };
+
+        function sortTimers() {
+            timerCards.sort((a, b) => {
+                const rankDiff = STATE_SORT_RANK[a.state] - STATE_SORT_RANK[b.state];
+                if (rankDiff !== 0) return rankDiff;
+                return a.remainingSeconds - b.remainingSeconds;
+            });
+
+            const grid = document.getElementById('timer-grid');
+            timerCards.forEach(card => grid.appendChild(card.element));
+            saveState();
+        }
+
+        const nameCollator = new Intl.Collator(['zh-Hant', 'zh', 'ja', 'ko', 'en'], { numeric: true, sensitivity: 'base' });
+
+        function sortTimersByName() {
+            timerCards.sort((a, b) => nameCollator.compare(a.nameInput.value, b.nameInput.value));
+
+            const grid = document.getElementById('timer-grid');
+            timerCards.forEach(card => grid.appendChild(card.element));
+            saveState();
+        }
+
         document.getElementById('btn-add-timer').addEventListener('click', () => addTimer());
+        document.getElementById('btn-sort-timer').addEventListener('click', sortTimers);
+        document.getElementById('btn-sort-name').addEventListener('click', sortTimersByName);
         ['pikmin-hours', 'pikmin-minutes', 'pikmin-seconds'].forEach(id => {
             document.getElementById(id).addEventListener('change', updatePikminOffset);
         });
