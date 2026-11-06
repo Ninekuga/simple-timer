@@ -464,6 +464,14 @@
             outline-offset: 2px;
         }
 
+        body.hours-disabled .hours-only {
+            display: none;
+        }
+
+        body.hours-disabled .time-inputs {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 1.8em;
@@ -509,10 +517,17 @@
             <button class="btn-add" id="btn-sort-name">字序排序</button>
         </div>
         <div class="pikmin-global-settings">
+            <label class="toggle-switch">
+                <input type="checkbox" id="hours-toggle" checked>
+                <span class="toggle-slider"></span>
+            </label>
+            <span class="pikmin-settings-label">啟用小時</span>
+        </div>
+        <div class="pikmin-global-settings">
             <span class="pikmin-settings-label">皮克敏附加時間：</span>
             <div class="pikmin-inputs">
-                <input type="number" id="pikmin-hours"   min="0" max="23" value="00" inputmode="numeric" pattern="[0-9]*">
-                <span>時</span>
+                <input type="number" id="pikmin-hours" class="hours-only" min="0" max="23" value="00" inputmode="numeric" pattern="[0-9]*">
+                <span class="hours-only">時</span>
                 <input type="number" id="pikmin-minutes" min="0" max="59" value="04" inputmode="numeric" pattern="[0-9]*">
                 <span>分</span>
                 <input type="number" id="pikmin-seconds" min="0" max="59" value="00" inputmode="numeric" pattern="[0-9]*">
@@ -557,7 +572,7 @@
                     </div>
 
                     <div class="time-inputs">
-                        <div class="time-input-group">
+                        <div class="time-input-group hours-only">
                             <label>時</label>
                             <input type="number" class="input-hours" min="0" max="23" value="00" inputmode="numeric" pattern="[0-9]*">
                         </div>
@@ -793,12 +808,13 @@
         let beepTimeoutId = null;
         let timerCards = [];
         let pikminOffsetSeconds = 240;
+        let hoursEnabled = true;
         const STORAGE_KEY = 'timerCardsState';
 
         function saveState() {
             try {
                 const titles = timerCards.map(card => card.nameInput.value);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(titles));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ titles, hoursEnabled }));
             } catch (e) {}
         }
 
@@ -806,12 +822,41 @@
             try {
                 const raw = localStorage.getItem(STORAGE_KEY);
                 if (raw === null) return null;
-                const titles = JSON.parse(raw);
-                if (!Array.isArray(titles)) return null;
-                return titles;
+                const data = JSON.parse(raw);
+                // 舊格式：純標題陣列
+                if (Array.isArray(data)) return { titles: data, hoursEnabled: true };
+                if (!data || !Array.isArray(data.titles)) return null;
+                return { titles: data.titles, hoursEnabled: data.hoursEnabled !== false };
             } catch (e) {
                 return null;
             }
+        }
+
+        function applyHoursEnabled(enabled) {
+            hoursEnabled = enabled;
+            document.body.classList.toggle('hours-disabled', !enabled);
+            document.getElementById('hours-toggle').checked = enabled;
+            if (enabled) return;
+
+            // 關閉小時：所有小時值歸零並重算剩餘時間
+            const pikminHours = document.getElementById('pikmin-hours');
+            if (parseInt(pikminHours.value) !== 0) {
+                pikminHours.value = '00';
+                updatePikminOffset();
+            }
+            timerCards.forEach(card => {
+                card.inputHours.value = '00';
+                if (card.state === 'idle') {
+                    card.updateFromInputs();
+                } else {
+                    card.hours = 0;
+                }
+            });
+        }
+
+        function updateHoursToggleLock() {
+            const busy = timerCards.some(card => card.state === 'running' || card.state === 'paused');
+            document.getElementById('hours-toggle').disabled = busy;
         }
 
         function unlockAudio() {
@@ -918,6 +963,7 @@
 
             document.getElementById('running-count').textContent = running;
             document.getElementById('finished-count').textContent = finished;
+            updateHoursToggleLock();
         }
 
         function addTimer(name) {
@@ -953,6 +999,10 @@
         document.getElementById('btn-add-timer').addEventListener('click', () => addTimer());
         document.getElementById('btn-sort-timer').addEventListener('click', sortTimers);
         document.getElementById('btn-sort-name').addEventListener('click', sortTimersByName);
+        document.getElementById('hours-toggle').addEventListener('change', e => {
+            applyHoursEnabled(e.target.checked);
+            saveState();
+        });
         ['pikmin-hours', 'pikmin-minutes', 'pikmin-seconds'].forEach(id => {
             document.getElementById(id).addEventListener('change', updatePikminOffset);
         });
@@ -963,11 +1013,12 @@
         });
 
         window.addEventListener('load', () => {
-            const savedTitles = loadState();
-            if (savedTitles !== null) {
-                savedTitles.forEach((title, i) => {
+            const saved = loadState();
+            if (saved !== null) {
+                saved.titles.forEach((title, i) => {
                     timerCards.push(new TimerCard(i + 1, title));
                 });
+                applyHoursEnabled(saved.hoursEnabled);
             } else {
                 timerCards.push(new TimerCard(1));
                 timerCards.push(new TimerCard(2));
